@@ -3,12 +3,12 @@
 # @Author: atremblay
 # @Email: atremblay@datacratic.com
 # @Date:   2016-04-26 12:04:50
-# @Last Modified by:   atremblay
-# @Last Modified time: 2016-04-27 14:24:33
+# @Last Modified by:   Alexis Tremblay
+# @Last Modified time: 2016-05-11 11:05:42
 # @File Name: cross_validation.py
 
 from pymldb import Connection
-from utils import Transform
+from procedures import Transform
 import uuid
 mldb = Connection("http://localhost")
 
@@ -86,7 +86,7 @@ def train_test_split(
         Transform(
             inputData="""
                 SELECT * FROM {} WHERE rowHash()%100>={}
-            """.format(dataset, int(test_size*100)),
+            """.format(dataset, int(100-test_size*100)),
             outputDataset=test_set_name
         )()
     )
