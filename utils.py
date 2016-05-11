@@ -3,8 +3,8 @@
 # @Author: atremblay
 # @Email: atremblay@datacratic.com
 # @Date:   2016-04-08 13:55:22
-# @Last Modified by:   atremblay
-# @Last Modified time: 2016-04-26 15:08:00
+# @Last Modified by:   Alexis Tremblay
+# @Last Modified time: 2016-05-11 09:08:25
 # @File Name: utils.py
 
 from pymldb import Connection
@@ -305,7 +305,7 @@ class MLDBrtbopt(object):
         if print_config:
             print(json.dumps(payload, indent=4))
 
-        return mldb.put("/v1/procedures/indexerdata", payload)
+        return self.mldb.put("/v1/procedures/indexerdata", payload)
 
 
 def import_dataset(dataset, sep=';'):
@@ -376,7 +376,9 @@ def export_dataset(dataset, sep=";", columns=None):
 
 
 class Dataset(object):
-    """docstring for DatasetExporter"""
+    """
+    This class provides wrapper function to manage csv files.
+    """
     def __init__(
             self,
             dataset,
@@ -502,7 +504,8 @@ class Dataset(object):
             outputDataset (None): In case you would like to provide another
                 name to the imported dataset. You can also provide a full
                 OutputDatasetSpec
-            index_label (str): Column to use as index.
+            index_label (str): Column to use as index. If None, will not use any
+                column.
 
         Returns:
             TYPE: Description
