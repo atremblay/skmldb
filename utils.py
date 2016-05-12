@@ -4,12 +4,14 @@
 # @Email: atremblay@datacratic.com
 # @Date:   2016-04-08 13:55:22
 # @Last Modified by:   Alexis Tremblay
-# @Last Modified time: 2016-05-11 09:08:25
+# @Last Modified time: 2016-05-12 09:36:11
 # @File Name: utils.py
 
 from pymldb import Connection
 import os
 import json
+import uuid
+import tempfile
 
 mldb = Connection("http://localhost")
 
@@ -590,3 +592,67 @@ def stratified_sample(table, col, weights, outputDataset=None):
             inputData=merge,
             outputData=_create_output_dataset(
                 outputDataset, table+"_stratified")))
+
+
+def dataset_from_dataframe(df, name=None, index_name=None):
+    """
+    Paramters:
+        df: DataFrame
+
+            DataFrame to import in MLDB
+
+        name: string (default None)
+
+            Name to give to the dataset that will contain the DataFrame. If
+            None, a random name will be generated
+
+        index_name: string (default None)
+
+            Should the name of the index on the DataFrame be None, this value
+            will be used on import. If also None, the index will not be
+            imported. This means that if the index of the DataFrame has a name,
+            this parameter will be ignored.
+    """
+    if name is None:
+        name = "d" + str(uuid.uuid4().hex)
+
+
+    tmp_file = tempfile.NamedTemporaryFile(dir=".")
+    params = {
+        "ignoreBadLines": True,
+        "runOnCreation": True,
+        "delimiter": ";",
+        "outputDataset": {
+            "params": {
+                "unknownColumns": "add"
+            },
+            "type": "tabular",
+            "id": name
+        },
+        "dataFileUrl": "file://{}".format(tmp_file.name)
+    }
+
+    if df.index.name is not None:
+        df.to_csv(tmp_file, sep=";", index=True)
+        params['named'] = df.index.name
+        params["select"] = "* EXCLUDING ({})".format(df.index.name)
+    elif index_name is not None:
+        df.index.name = index_name
+        df.to_csv(tmp_file, sep=";", index=True)
+        params['named'] = index_name
+        params["select"] = "* EXCLUDING ({})".format(index_name)
+    else:
+        df.to_csv(tmp_file, sep=";", index=False)
+    tmp_file.file.flush()
+
+    payload = {
+        "params": params,
+        "type": "import.text"
+    }
+    response = mldb.put("/v1/procedures/import", payload)
+    tmp_file.close()
+    if response.status_code != 201:
+        raise Exception("Could not create dataset")
+
+    return name
+

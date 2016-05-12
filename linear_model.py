@@ -4,7 +4,7 @@
 # @Email: atremblay@datacratic.com
 # @Date:   2016-05-11 09:30:03
 # @Last Modified by:   Alexis Tremblay
-# @Last Modified time: 2016-05-11 09:37:51
+# @Last Modified time: 2016-05-12 12:43:04
 # @File Name: linear_model.py
 
 from pymldb import Connection
@@ -82,11 +82,12 @@ class LogisticRegression(object):
             SELECT
                 {%(features)s} as features,
                 %(label)s as label
-            FROM %(campaign)s""" % {
-                "features": ",".join(X),
-                "label": y,
-                "campaign": dataset
-            }
+            FROM %(campaign)s
+        """ % {
+            "features": ",".join(X),
+            "label": y,
+            "campaign": dataset
+        }
 
         self.training_payload = {
             "type": "classifier.train",
@@ -102,14 +103,14 @@ class LogisticRegression(object):
         }
 
         response = mldb.put(
-            "/v1/procedures/"+self.name,
+            "/v1/procedures/" + self.name,
             self.training_payload)
 
         if response.status_code != 201:
             raise Exception("could not train random forest.\n{}".format(
                 response.content))
 
-    def predict(self, dataset):
+    def predict(self, dataset, predict_set_name=None):
         """
         Predict class for X.
 
@@ -122,9 +123,15 @@ class LogisticRegression(object):
             dataset: string
 
                 Dataset name to use for testing
+
+            predict_set_name: string (default None)
+
+                Name to give to the dataset containing the predictions. If None,
+                a randomly generated name will be given
         """
 
-        predict_set_name = "d"+str(uuid.uuid4().hex)
+        if predict_set_name is None:
+            predict_set_name = "d" + str(uuid.uuid4().hex)
         self.predict_payload = Transform(
             inputData="""
                 SELECT
@@ -134,13 +141,13 @@ class LogisticRegression(object):
                 "func": self.name,
                 "features": ",".join(self.features),
                 "test": dataset
-                },
+            },
             outputDataset=predict_set_name
         )()
         response = mldb.put(
-                "/v1/procedures/train_test_split",
-                self.predict_payload
-            )
+            "/v1/procedures/train_test_split",
+            self.predict_payload
+        )
         if response.status_code != 201:
             raise Exception("could not create dataset.\n{}".format(
                 response.content))

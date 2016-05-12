@@ -3,8 +3,8 @@
 # @Author: atremblay
 # @Email: atremblay@datacratic.com
 # @Date:   2016-04-26 13:23:04
-# @Last Modified by:   atremblay
-# @Last Modified time: 2016-04-29 17:07:58
+# @Last Modified by:   Alexis Tremblay
+# @Last Modified time: 2016-05-12 12:41:46
 # @File Name: ensemble.py
 
 from pymldb import Connection
@@ -115,7 +115,7 @@ class RandomForestClassifier(object):
             raise Exception("could not train random forest.\n{}".format(
                 response.content))
 
-    def predict(self, dataset):
+    def predict(self, dataset, predict_set_name=None):
         """
         Predict class for X.
 
@@ -128,9 +128,15 @@ class RandomForestClassifier(object):
             dataset: string
 
                 Dataset name to use for testing
+
+            predict_set_name: string (default None)
+
+                Name to give to the dataset containing the predictions. If None,
+                a randomly generated name will be given
         """
 
-        predict_set_name = "d"+str(uuid.uuid4().hex)
+        if predict_set_name is None:
+            predict_set_name = "d"+str(uuid.uuid4().hex)
         self.predict_payload = Transform(
             inputData="""
                 SELECT

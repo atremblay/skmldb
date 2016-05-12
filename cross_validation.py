@@ -4,7 +4,7 @@
 # @Email: atremblay@datacratic.com
 # @Date:   2016-04-26 12:04:50
 # @Last Modified by:   Alexis Tremblay
-# @Last Modified time: 2016-05-11 11:05:42
+# @Last Modified time: 2016-05-12 10:22:57
 # @File Name: cross_validation.py
 
 from pymldb import Connection
@@ -16,9 +16,15 @@ mldb = Connection("http://localhost")
 def train_test_split(
         dataset,
         test_size=None,
-        train_size=None):
+        train_size=None,
+        test_name=None,
+        train_name=None):
 
     """
+    Function to randomly split a dataset in a train and test set. Names of both
+    are None by default to make sure it does not accidentally overwrite an
+    existing dataset. It is recommended that you provide names.
+
     Parameters
         dataset : string
 
@@ -39,10 +45,14 @@ def train_test_split(
             absolute number of train samples. If None, the value is
             automatically set to the complement of the test size.
 
-        stratify : array-like or None (default is None)
+        test_name : string, (default is None)
 
-            If not None, data is split in a stratified fashion, using this as
-            the labels array.
+            Name to give to the test set
+
+        train_name : string, (default is None)
+
+            Name to give to the train set
+
 
     Returns
         splitting : tuple, length = 2
@@ -65,14 +75,15 @@ def train_test_split(
         msg += "train_size".format(test_size + train_size)
         raise ValueError(msg)
 
-    train_set_name = "d"+str(uuid.uuid4().hex)
+    if train_name is None:
+        train_name = "d"+str(uuid.uuid4().hex)
     response = mldb.put(
         "/v1/procedures/train_test_split",
         Transform(
             inputData="""
                 SELECT * FROM {} WHERE rowHash()%100<{}
             """.format(dataset, int(train_size*100)),
-            outputDataset=train_set_name
+            outputDataset=train_name
         )()
     )
 
@@ -80,14 +91,15 @@ def train_test_split(
         raise Exception("could not create dataset.\n{}".format(
             response.content))
 
-    test_set_name = "d"+str(uuid.uuid4().hex)
+    if test_name is None:
+        test_name = "d"+str(uuid.uuid4().hex)
     response = mldb.put(
         "/v1/procedures/train_test_split",
         Transform(
             inputData="""
                 SELECT * FROM {} WHERE rowHash()%100>={}
             """.format(dataset, int(100-test_size*100)),
-            outputDataset=test_set_name
+            outputDataset=test_name
         )()
     )
 
@@ -96,4 +108,4 @@ def train_test_split(
             response.content))
 
     # TODO possibly return a kind of Dataset object that you can call delete on
-    return (train_set_name, test_set_name)
+    return (train_name, test_name)

@@ -3,14 +3,13 @@
 # @Author: atremblay
 # @Email: atremblay@datacratic.com
 # @Date:   2016-04-27 15:46:19
-# @Last Modified by:   atremblay
-# @Last Modified time: 2016-05-02 10:12:57
+# @Last Modified by:   Alexis Tremblay
+# @Last Modified time: 2016-05-12 12:43:35
 # @File Name: classifier.py
 
 from pymldb import Connection
 import json
 from utils import Transform, _create_output_dataset
-import uuid
 mldb = Connection("http://localhost")
 
 
