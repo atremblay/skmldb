@@ -4,12 +4,11 @@
 # @Email: atremblay@datacratic.com
 # @Date:   2016-05-02 10:52:25
 # @Last Modified by:   Alexis Tremblay
-# @Last Modified time: 2016-05-11 13:39:10
+# @Last Modified time: 2016-05-16 13:46:49
 # @File Name: procedures.py
 
 from pymldb import Connection
-from utils import _create_output_dataset
-import uuid
+from utils import generate_random_name, _create_output_dataset
 import json
 mldb = Connection("http://localhost")
 
@@ -131,15 +130,16 @@ class Probabilizer(object):
             raise Exception("could not train probabilizer.\n{}".format(
                 response.content))
 
-    def predict(self, dataset):
+    def predict(self, dataset, predict_set_name=None):
         """
         Parameters:
             dataset: string
 
                 Dataset name to use for testing
         """
+        if predict_set_name is None:
+            predict_set_name = generate_random_name()
 
-        predict_set_name = "d" + str(uuid.uuid4().hex)
         self.predict_payload = Transform(
             inputData="""
                 SELECT

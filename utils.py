@@ -4,7 +4,7 @@
 # @Email: atremblay@datacratic.com
 # @Date:   2016-04-08 13:55:22
 # @Last Modified by:   Alexis Tremblay
-# @Last Modified time: 2016-05-12 09:36:11
+# @Last Modified time: 2016-05-16 13:43:06
 # @File Name: utils.py
 
 from pymldb import Connection
@@ -310,73 +310,6 @@ class MLDBrtbopt(object):
         return self.mldb.put("/v1/procedures/indexerdata", payload)
 
 
-def import_dataset(dataset, sep=';'):
-    try:
-        mldb.delete("/v1/datasets/"+dataset)
-        path = "file://" + os.path.join(os.getcwd(), "{}.csv".format(dataset))
-        response = mldb.put("/v1/procedures/import", {
-            "type": "import.text",
-            "params": {
-                "dataFileUrl": path,
-                "outputDataset": dataset,
-                "runOnCreation": True,
-                "ignoreBadLines": True,
-                "delimiter": sep,
-                "named": "rowName"
-            }
-        })
-
-        # mldb.put(
-        #     '/v1/procedures/donotcare',
-        #     {
-        #         "type": "transform",
-        #         "params": {
-        #             "inputData": """
-        #                 SELECT * EXCLUDING (_rowName) NAMED _rowName
-        #                 FROM _{}
-        #             """.format(dataset),
-        #             "outputDataset": dataset,
-        #             "runOnCreation": True
-        #         }
-        #     })
-        # mldb.delete("/v1/datasets/_"+dataset)
-
-        return response.status_code == 201
-    except Exception as e:
-        print("Could not import {}\n{}".format(dataset, e))
-        return False
-
-
-def export_dataset(dataset, sep=";", columns=None):
-
-    try:
-        # path = "file://" + os.path.join(os.getcwd(), "{}.csv".format(dataset))
-        df = mldb.query("SELECT * FROM {}".format(dataset))
-        df.to_csv(
-            os.path.join(os.getcwd(), "{}.csv".format(dataset)),
-            encoding='utf-8',
-            sep=sep,
-            columns=columns
-        )
-#         mldb.put("/v1/procedures/export", {
-#             "type": "export.csv",
-#             "params": {
-#                 "exportData": "SELECT rowName() AS __index, * FROM {}".format(dataset),
-#                 "dataFileUrl": path,
-#                 "headers": True,
-#                 "runOnCreation": True,
-#                 "delimiter": sep
-#             }
-#         })
-    except:
-        try:
-            # Just making sure we are not keeping half a file
-            os.remove(os.path.join(os.getcwd(), "{}.csv".format(dataset)))
-            raise
-        except:
-            pass
-
-
 class Dataset(object):
     """
     This class provides wrapper function to manage csv files.
@@ -515,6 +448,9 @@ class Dataset(object):
 
         if directory is None:
             directory = os.getcwd()
+        else:
+            directory = os.path.join(os.getcwd(), directory)
+        print(directory)
         self.dir = directory
 
         mldb.delete("/v1/datasets/"+self.dataset)
@@ -573,27 +509,6 @@ def _create_output_dataset(outputDataset, dataset_name=None):
         return outputDataset
 
 
-def stratified_sample(table, col, weights, outputDataset=None):
-    q = """
-        SELECT *
-        FROM sample(%(table)s, {rows: %(value)s, withReplacement: FALSE})
-        WHERE %(col)s = '%(key)s'
-        """ % {"table": table, "col": col}
-
-    subselects = []
-    for key, value in weights.items():
-        subselects.append(q % {"key": key, "value": value})
-
-    merge = "SELECT * FROM merge({})".format(",".join(subselects))
-
-    mldb.put(
-        "/v1/procedures/stratifiedSample",
-        Transform(
-            inputData=merge,
-            outputData=_create_output_dataset(
-                outputDataset, table+"_stratified")))
-
-
 def dataset_from_dataframe(df, name=None, index_name=None):
     """
     Paramters:
@@ -614,8 +529,7 @@ def dataset_from_dataframe(df, name=None, index_name=None):
             this parameter will be ignored.
     """
     if name is None:
-        name = "d" + str(uuid.uuid4().hex)
-
+        name = generate_random_name()
 
     tmp_file = tempfile.NamedTemporaryFile(dir=".")
     params = {
@@ -656,3 +570,24 @@ def dataset_from_dataframe(df, name=None, index_name=None):
 
     return name
 
+
+def generate_random_name(prefix="d"):
+    """
+    Generates a name based on a random uuid
+    Paramters:
+        prefix: string (default 'd')
+
+            Prefix to add to the random uuid. Must be a lower or upper case
+            letter
+    """
+    if not isinstance(prefix, str):
+        raise ValueError("prefix must be a string")
+
+    first = prefix
+    if len(prefix) > 1:
+        first = prefix[0]
+
+    if not first.isalpha():
+        raise ValueError("prefix must start with a lower or upper case letter")
+
+    return prefix + str(uuid.uuid4().hex)
