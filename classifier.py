@@ -4,12 +4,13 @@
 # @Email: atremblay@datacratic.com
 # @Date:   2016-04-27 15:46:19
 # @Last Modified by:   Alexis Tremblay
-# @Last Modified time: 2016-05-12 12:43:35
+# @Last Modified time: 2016-05-12 13:48:15
 # @File Name: classifier.py
 
 from pymldb import Connection
 import json
 from utils import Transform, _create_output_dataset
+from exception import ArgumentError, ProcedureError
 mldb = Connection("http://localhost")
 
 
@@ -75,39 +76,62 @@ class BestF(object):
         return r
 
 
-def test(estimator, dataset, outputDataset=None):
-    testingData = """
-        SELECT
-            %(func)s({features:{"%(features)s"}})[score] as score,
-            %(label)s as label
-        FROM %(campaign)s""" % {
-            "func": estimator.name,
-            "features": '","'.join(estimator.features),
-            "label": estimator.label,
-            "campaign": dataset
-        }
+def Test(dataset, estimator=None, score=None, label=None, outputDataset=None):
+
+    if estimator is not None:
+        testingData = """
+            SELECT
+                %(func)s({features:{"%(features)s"}})[score] as score,
+                %(label)s as label
+            FROM %(dataset)s""" % {
+                "func": estimator.name,
+                "features": '","'.join(estimator.features),
+                "label": estimator.label,
+                "dataset": dataset
+            }
+        proc_name = estimator.name
+    elif score is not None:
+        if label is None:
+            msg = "If estimator is not provided, both score and label must \
+            be provided"
+            raise ArgumentError(msg)
+
+        testingData = """
+            SELECT
+                %(score)s as score,
+                %(label)s as label
+            FROM %(dataset)s""" % {
+                "score": score,
+                "label": label,
+                "dataset": dataset
+            }
+        proc_name = dataset
+
+    params = {
+        "testingData": testingData,
+        "runOnCreation": True
+    }
+    if estimator is not None:
+        params["mode"] = estimator._mode
 
     payload = {
         "type": "classifier.test",
-        "params": {
-            "testingData": testingData,
-            "mode": estimator._mode,
-            "runOnCreation": True
-        }
+        "params": params
     }
+
     if outputDataset is not None:
         payload["outputDataset"] = _create_output_dataset(outputDataset)
 
-    response = mldb.put("/v1/procedures/"+estimator.name+"_test", payload)
+    response = mldb.put("/v1/procedures/"+proc_name+"_test", payload)
     if response.status_code != 201:
-        raise Exception(response.content)
+        raise ProcedureError(response.content)
 
     content = json.loads(response.content)
     bestMCC = BestMCC(content["status"]["firstRun"]["status"]["bestMcc"])
     bestF = BestF(content["status"]["firstRun"]["status"]["bestF"])
     auc = content["status"]["firstRun"]["status"]["auc"]
 
-    return bestMCC, bestF, auc
+    return (bestMCC, bestF, auc)
 
 
 def experiment(estimator, dataset, X, y, kfold=0, name=None):
