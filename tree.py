@@ -3,15 +3,16 @@
 # @Author: atremblay
 # @Email: atremblay@datacratic.com
 # @Date:   2016-04-27 10:57:58
-# @Last Modified by:   atremblay
-# @Last Modified time: 2016-05-02 08:43:18
+# @Last Modified by:   Alexis Tremblay
+# @Last Modified time: 2016-05-17 09:26:33
 # @File Name: tree.py
 
-from pymldb import Connection
 import json
-from utils import Transform
-import uuid
-mldb = Connection("http://localhost")
+from procedures import Transform
+from utils import generate_random_name
+from connection import conn
+
+mldb = conn
 
 
 class DecisionTreeClassifier(object):
@@ -82,7 +83,7 @@ class DecisionTreeClassifier(object):
             }
         }
 
-        response = mldb.put(
+        response = mldb.connection.put(
             "/v1/procedures/"+self.name,
             self.training_payload)
 
@@ -90,7 +91,7 @@ class DecisionTreeClassifier(object):
             raise Exception("could not train random forest.\n{}".format(
                 response.content))
 
-    def predict(self, dataset):
+    def predict(self, dataset, predict_set_name=None):
         """
         Predict class for X.
 
@@ -103,9 +104,14 @@ class DecisionTreeClassifier(object):
             dataset: string
 
                 Dataset name to use for testing
-        """
 
-        predict_set_name = "d"+str(uuid.uuid4().hex)
+            predict_set_name: string (default None)
+
+                Name to give to the dataset containing the predictions. If None,
+                a randomly generated name will be given
+        """
+        if predict_set_name is None:
+            predict_set_name = generate_random_name()
         self.predict_payload = Transform(
             inputData="""
                 SELECT
@@ -118,7 +124,7 @@ class DecisionTreeClassifier(object):
                 },
             outputDataset=predict_set_name
         )()
-        response = mldb.put(
+        response = mldb.connection.put(
                 "/v1/procedures/train_test_split",
                 self.predict_payload
             )

@@ -4,14 +4,15 @@
 # @Email: atremblay@datacratic.com
 # @Date:   2016-04-27 15:46:19
 # @Last Modified by:   Alexis Tremblay
-# @Last Modified time: 2016-05-12 13:48:15
+# @Last Modified time: 2016-05-17 09:24:28
 # @File Name: classifier.py
 
-from pymldb import Connection
 import json
-from utils import Transform, _create_output_dataset
+from utils import _create_output_dataset
 from exception import ArgumentError, ProcedureError
-mldb = Connection("http://localhost")
+from connection import conn
+
+mldb = conn
 
 
 class BestMCC(object):
@@ -122,7 +123,10 @@ def Test(dataset, estimator=None, score=None, label=None, outputDataset=None):
     if outputDataset is not None:
         payload["outputDataset"] = _create_output_dataset(outputDataset)
 
-    response = mldb.put("/v1/procedures/"+proc_name+"_test", payload)
+    response = mldb.connection.put(
+        "/v1/procedures/" + proc_name + "_test",
+        payload
+        )
     if response.status_code != 201:
         raise ProcedureError(response.content)
 
@@ -146,7 +150,7 @@ def experiment(estimator, dataset, X, y, kfold=0, name=None):
             "label": y,
             "campaign": dataset
         }
-    response = mldb.put("/v1/procedures/dt", {
+    response = mldb.connection.put("/v1/procedures/dt", {
         "type": "classifier.experiment",
         "params": {
             "experimentName": name,

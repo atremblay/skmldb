@@ -4,16 +4,15 @@
 # @Email: atremblay@datacratic.com
 # @Date:   2016-05-16 13:34:59
 # @Last Modified by:   Alexis Tremblay
-# @Last Modified time: 2016-05-16 14:19:42
+# @Last Modified time: 2016-05-17 09:20:34
 # @File Name: random.py
 
 
-from pymldb import Connection
 from utils import generate_random_name, _create_output_dataset
 from procedures import Transform
+from connection import conn
 
-
-mldb = Connection("http://localhost")
+mldb = conn
 
 
 def stratified_sample(dataset, col, weights, outputDataset=None):
@@ -61,7 +60,7 @@ def stratified_sample(dataset, col, weights, outputDataset=None):
 
     merge = "SELECT * FROM merge({})".format(",".join(subselects))
 
-    mldb.put(
+    mldb.connection.put(
         "/v1/procedures/stratifiedSample",
         Transform(
             inputData=merge,

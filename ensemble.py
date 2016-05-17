@@ -4,14 +4,15 @@
 # @Email: atremblay@datacratic.com
 # @Date:   2016-04-26 13:23:04
 # @Last Modified by:   Alexis Tremblay
-# @Last Modified time: 2016-05-12 12:41:46
+# @Last Modified time: 2016-05-17 09:23:24
 # @File Name: ensemble.py
 
-from pymldb import Connection
 import json
-from utils import Transform
-import uuid
-mldb = Connection("http://localhost")
+from procedures import Transform
+from utils import generate_random_name
+from connection import conn
+
+mldb = conn
 
 
 class RandomForestClassifier(object):
@@ -107,7 +108,7 @@ class RandomForestClassifier(object):
             }
         }
 
-        response = mldb.put(
+        response = mldb.connection.put(
             "/v1/procedures/"+self.name,
             self.training_payload)
 
@@ -136,7 +137,7 @@ class RandomForestClassifier(object):
         """
 
         if predict_set_name is None:
-            predict_set_name = "d"+str(uuid.uuid4().hex)
+            predict_set_name = generate_random_name()
         self.predict_payload = Transform(
             inputData="""
                 SELECT
@@ -149,7 +150,7 @@ class RandomForestClassifier(object):
                 },
             outputDataset=predict_set_name
         )()
-        response = mldb.put(
+        response = mldb.connection.put(
                 "/v1/procedures/train_test_split",
                 self.predict_payload
             )

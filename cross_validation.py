@@ -4,13 +4,14 @@
 # @Email: atremblay@datacratic.com
 # @Date:   2016-04-26 12:04:50
 # @Last Modified by:   Alexis Tremblay
-# @Last Modified time: 2016-05-12 10:22:57
+# @Last Modified time: 2016-05-17 09:18:17
 # @File Name: cross_validation.py
 
-from pymldb import Connection
 from procedures import Transform
 import uuid
-mldb = Connection("http://localhost")
+from connection import conn
+
+mldb = conn
 
 
 def train_test_split(
@@ -77,7 +78,7 @@ def train_test_split(
 
     if train_name is None:
         train_name = "d"+str(uuid.uuid4().hex)
-    response = mldb.put(
+    response = mldb.connection.put(
         "/v1/procedures/train_test_split",
         Transform(
             inputData="""
@@ -93,7 +94,7 @@ def train_test_split(
 
     if test_name is None:
         test_name = "d"+str(uuid.uuid4().hex)
-    response = mldb.put(
+    response = mldb.connection.put(
         "/v1/procedures/train_test_split",
         Transform(
             inputData="""

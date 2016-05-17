@@ -4,13 +4,14 @@
 # @Email: atremblay@datacratic.com
 # @Date:   2016-05-02 10:52:25
 # @Last Modified by:   Alexis Tremblay
-# @Last Modified time: 2016-05-16 13:46:49
+# @Last Modified time: 2016-05-17 09:29:00
 # @File Name: procedures.py
 
-from pymldb import Connection
 from utils import generate_random_name, _create_output_dataset
 import json
-mldb = Connection("http://localhost")
+from connection import conn
+
+mldb = conn
 
 
 class Transform(object):
@@ -122,7 +123,7 @@ class Probabilizer(object):
             }
         }
 
-        response = mldb.put(
+        response = mldb.connection.put(
             "/v1/procedures/" + self.name,
             self.training_payload)
 
@@ -136,6 +137,11 @@ class Probabilizer(object):
             dataset: string
 
                 Dataset name to use for testing
+
+            predict_set_name: string (default None)
+
+                Name to give to the dataset containing the predictions. If None,
+                a randomly generated name will be given
         """
         if predict_set_name is None:
             predict_set_name = generate_random_name()
@@ -152,7 +158,7 @@ class Probabilizer(object):
             },
             outputDataset=predict_set_name
         )()
-        response = mldb.put(
+        response = mldb.connection.put(
             "/v1/procedures/train_test_split",
             self.predict_payload
         )

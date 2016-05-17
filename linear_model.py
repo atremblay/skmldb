@@ -4,14 +4,15 @@
 # @Email: atremblay@datacratic.com
 # @Date:   2016-05-11 09:30:03
 # @Last Modified by:   Alexis Tremblay
-# @Last Modified time: 2016-05-12 12:43:04
+# @Last Modified time: 2016-05-17 09:22:21
 # @File Name: linear_model.py
 
-from pymldb import Connection
 import json
-from utils import Transform
-import uuid
-mldb = Connection("http://localhost")
+from utils import generate_random_name
+from procedures import Transform
+from connection import conn
+
+mldb = conn
 
 
 class LogisticRegression(object):
@@ -102,7 +103,7 @@ class LogisticRegression(object):
             }
         }
 
-        response = mldb.put(
+        response = mldb.connection.put(
             "/v1/procedures/" + self.name,
             self.training_payload)
 
@@ -131,7 +132,7 @@ class LogisticRegression(object):
         """
 
         if predict_set_name is None:
-            predict_set_name = "d" + str(uuid.uuid4().hex)
+            predict_set_name = generate_random_name()
         self.predict_payload = Transform(
             inputData="""
                 SELECT
@@ -144,7 +145,7 @@ class LogisticRegression(object):
             },
             outputDataset=predict_set_name
         )()
-        response = mldb.put(
+        response = mldb.connection.put(
             "/v1/procedures/train_test_split",
             self.predict_payload
         )

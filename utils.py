@@ -4,16 +4,16 @@
 # @Email: atremblay@datacratic.com
 # @Date:   2016-04-08 13:55:22
 # @Last Modified by:   Alexis Tremblay
-# @Last Modified time: 2016-05-16 13:43:06
+# @Last Modified time: 2016-05-17 09:03:41
 # @File Name: utils.py
 
-from pymldb import Connection
 import os
 import json
 import uuid
 import tempfile
+from connection import conn
 
-mldb = Connection("http://localhost")
+mldb = conn
 
 
 class Transform(object):
@@ -128,6 +128,7 @@ class ImportText(object):
             "dataFileUrl": self.dataFileUrl,
             "outputDataset": self.outputDataset
         }
+
         if self.headers is not None:
             params["headers"] = self.headers
         if self.quotechar is not None:
@@ -243,12 +244,9 @@ class MLDBrtbopt(object):
     """docstring for MLDBrtbopt"""
     def __init__(
             self,
-            host="http://localhost",
             s3LogHost="http://rtbindexer.ops.datacratic.com:17000"):
         super(MLDBrtbopt, self).__init__()
-        self.host = host
         self.s3LogHost = s3LogHost
-        self.mldb = Connection(host)
 
     def mw_import(
             self,
@@ -283,7 +281,7 @@ class MLDBrtbopt(object):
         if print_config:
             print(json.dumps(payload, indent=4))
 
-        return self.mldb.put("/v1/procedures/rtbimport", payload)
+        return mldb.connection.put("/v1/procedures/rtbimport", payload)
 
     def indexer(
             self,
@@ -307,7 +305,7 @@ class MLDBrtbopt(object):
         if print_config:
             print(json.dumps(payload, indent=4))
 
-        return self.mldb.put("/v1/procedures/indexerdata", payload)
+        return mldb.connection.put("/v1/procedures/indexerdata", payload)
 
 
 class Dataset(object):
@@ -379,7 +377,7 @@ class Dataset(object):
                     FROM {}
                     """.format(cols, self.dataset)
 
-            df = mldb.query(query)
+            df = mldb.connection.query(query)
             # for page in range(pages):
             #     # print("{} of {}".format(page+1, pages))
             #     offset = lines_per_block * page
@@ -453,7 +451,7 @@ class Dataset(object):
         print(directory)
         self.dir = directory
 
-        mldb.delete("/v1/datasets/"+self.dataset)
+        mldb.connection.delete("/v1/datasets/"+self.dataset)
         path = "file://" + self.file_path
 
         payload = {"type": "import.text"}
@@ -473,7 +471,7 @@ class Dataset(object):
         if print_config:
             print(json.dumps(payload, indent=4))
 
-        return mldb.put("/v1/procedures/import", payload)
+        return mldb.connection.put("/v1/procedures/import", payload)
 
         # mldb.put(
         #     '/v1/procedures/donotcare',
@@ -563,7 +561,7 @@ def dataset_from_dataframe(df, name=None, index_name=None):
         "params": params,
         "type": "import.text"
     }
-    response = mldb.put("/v1/procedures/import", payload)
+    response = mldb.connection.put("/v1/procedures/import", payload)
     tmp_file.close()
     if response.status_code != 201:
         raise Exception("Could not create dataset")
