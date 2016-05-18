@@ -4,3 +4,5 @@ Thin wrapper for a few functions and procedures of MLDB inspired by the interfac
 This repo has been created as part of my job at Datacratic. 
 It is meant for my professional usage and should not be considered as part of the core of MLDB. 
 It is not officially supported by Datacratic.
+
+It is best used when a notebook is launched from inside a docker container. It then can manage on its own all necessary file path. 
