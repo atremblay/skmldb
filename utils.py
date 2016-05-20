@@ -4,7 +4,7 @@
 # @Email: atremblay@datacratic.com
 # @Date:   2016-04-08 13:55:22
 # @Last Modified by:   Alexis Tremblay
-# @Last Modified time: 2016-05-17 09:03:41
+# @Last Modified time: 2016-05-18 10:35:52
 # @File Name: utils.py
 
 import os
@@ -448,7 +448,7 @@ class Dataset(object):
             directory = os.getcwd()
         else:
             directory = os.path.join(os.getcwd(), directory)
-        print(directory)
+
         self.dir = directory
 
         mldb.connection.delete("/v1/datasets/"+self.dataset)
